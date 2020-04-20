@@ -1,22 +1,58 @@
+##--------------------------------------------------------------------------------------
+## Create Table 1 data.table
+##--------------------------------------------------------------------------------------
+## Output table will have at least 4 columns
+## Variable: variable from dt that is being summarized
+## Labels: depends on variable type
+##    Continuous variables: "Mean (SD)" and "Median [Min, Max]"
+##    Factor variables:     Factor levels for variable
+## Overall: summaries for the non-stratified input data frame
+## N Missing: number and percent of missing values for each variable
+## Additional columns for summaries of each stratum of stratifying variable, if present
+##--------------------------------------------------------------------------------------
+
 require(data.table)
 
-TableOne <- function(dt, # data.table
+TableOne <- function(dt,            # data frame 
                      outcome = NULL # string of column name to stratify table by
 ) {
-  #total subjects
+  if (!is.data.frame(dt)) {
+    stop("The input must be a data frame!")
+    }
+  if (!is.null(outcome) & sum(colnames(dt) == outcome) == 0) {
+    stop("Outcome variable not variable in input table")
+    }
+  
+  dt <- as.data.table(dt)
+
+  ##---------------------------------------
+  ## Variable, Label, and Overall columns
+  ##---------------------------------------
+  
+  ## total subjects
   n <- dt[, .N]
   
-  # initialize output table
+  ## initialize output table
   var.names.t1 <- character()
   label.t1 <- character()
   summary.t1 <- character()
   n.missing.t1 <- character()
   
-  NMiss <- function(dt, i, n) { ## fill in missing data
-    paste0(sum(is.na(dt[[i]])), " (", round(sum(is.na(dt[[i]])) / n * 100, 1), "%)")
+  NMiss <- function(dt, i, n) {    # fill in missing data
+    paste0(sum(is.na(dt[[i]])), 
+           " (", round(sum(is.na(dt[[i]])) / n * 100, 1), 
+           "%)")
   }
   
-  for (i in colnames(dt)[!colnames(dt) == outcome]) {
+  ## don't create output rows for stratified variable
+  if (is.null(outcome)) {
+    table.vars <- colnames(dt)
+  } else {
+      table.vars <- colnames(dt)[!colnames(dt) == outcome]
+  }
+  
+  
+  for (i in table.vars) {
     var.names.i <- character()
     label.i <- character()
     summary.i <- character()
@@ -68,6 +104,10 @@ TableOne <- function(dt, # data.table
     "Overall" = summary.t1
     
   )
+  
+  ##-------------------------------
+  ## Stratifying variable columns
+  ##-------------------------------
   
   if (!is.null(outcome)) { ## if there is a variable to stratify by, make a vector for each level
     strat <- levels(dt[[outcome]])
@@ -128,6 +168,15 @@ TableOne <- function(dt, # data.table
       table.one[, paste(k) := get(k)]
     }
   }
+  ##----------------------
+  ## N Missing column
+  ##----------------------
+  
   table.one[, "N Missing" := n.missing.t1]
+  
+  ##---------------
+  ## Output table
+  ##---------------
+  
   return(table.one[])
 }
