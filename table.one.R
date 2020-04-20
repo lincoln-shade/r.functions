@@ -12,6 +12,7 @@
 ##--------------------------------------------------------------------------------------
 
 require(data.table)
+require(magrittr)
 
 TableOne <- function(dt,            # data frame 
                      outcome = NULL # string of column name to stratify table by
